@@ -17,7 +17,7 @@ async function startVerificationWorker() {
     'verification',
     async (job) => {
       console.log('Running delayed verification for:', job.data.alert.title);
-      const result = await verificationService.verify(job.data.diagnosis, job.data.incidentId);
+      const result = await verificationService.verify(job.data.diagnosis, job.data.incident);
       console.log('Verification result:', result);
     },
     { connection },

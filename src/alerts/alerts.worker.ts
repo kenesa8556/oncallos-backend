@@ -34,6 +34,7 @@ const { data: incident, error } = await supabaseService.client
     title: rawAlert.title,
     severity: rawAlert.severity,
     status: 'open',
+    organization_id: rawAlert.organizationId,
   })
   .select()
   .single();
@@ -63,8 +64,31 @@ await supabaseService.client
 
       console.log('Diagnosis:', diagnosis);
 
-     const outcome = await executionService.execute(diagnosis, rawAlert.service, incident.id);
+
+      // Persist the diagnosis
+      const { error: diagnosisError } = await app.get(SupabaseService).client
+        .from('diagnoses')
+        .insert({
+          incident_id: incident.id,
+          root_cause: diagnosis.rootCause,
+          confidence: diagnosis.confidence,
+          recommended_action: diagnosis.recommendedAction,
+          status: 'pending', // will be updated to 'auto_executed' or 'approved'/'rejected' below
+        });
+
+      if (diagnosisError) {
+        console.error('Failed to save diagnosis:', diagnosisError.message);
+      } else {
+        console.log('[DIAGNOSIS SAVED]', incident.id);
+      }
+
+     const outcome = await executionService.execute(diagnosis, rawAlert.service, incident.id, rawAlert.organizationId);
         console.log('Execution outcome:', outcome);
+
+        await app.get(SupabaseService).client
+            .from('diagnoses')
+            .update({ status: outcome.status })
+            .eq('incident_id', incident.id);
 
             if (outcome.status === 'auto_executed') {
                 await verificationQueue.add(

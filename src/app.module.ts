@@ -10,18 +10,32 @@ import { DiagnosisModule} from './diagnosis/diagnosis.module'
 import { ExecutionModule} from './execution/execution.module'
 import { SnapshotsModule} from './snapshots/snapshots.module';
 import { VerificationModule} from './verification/verification.module';
+import { IncidentsModule} from './incidents/incidents.module';
+import { AuthModule } from './auth/auth.module';
+import { OrganizationsModule } from './organizations/organizations.module';
+import { MembersModule } from './members/members.module';
+import { ApiKeysModule } from './api-keys/api-keys.module';
+import { AgentModule } from './agent/agent.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     SupabaseModule,
+    AuthModule,
     AlertsModule,
+    AgentModule,
+    OrganizationsModule,
     EmbeddingsModule,
     ContextModule,
     DiagnosisModule,
     ExecutionModule,
+    MembersModule,
+    ApiKeysModule,
+    WebhooksModule,
     SnapshotsModule,
-    VerificationModule
+    VerificationModule,
+    IncidentsModule
   ],
   controllers: [AppController],
   providers: [AppService],
