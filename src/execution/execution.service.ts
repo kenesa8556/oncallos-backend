@@ -4,6 +4,8 @@ import { classifyRisk, needsSnapshot } from './execution.types';
 import { SnapshotsService } from '../snapshots/snapshots.service';
 import { SupabaseService } from '../supabase/supabase.service';
 
+const DEFAULT_HIGH_RISK_KEYWORDS = ['delete', 'drop', 'terminate', 'destroy', 'remove'];
+
 @Injectable()
 export class ExecutionService {
   constructor(
@@ -11,13 +13,27 @@ export class ExecutionService {
     private readonly supabaseService: SupabaseService,
   ) {}
 
+  private async getHighRiskKeywords(organizationId: string | null): Promise<string[]> {
+    if (!organizationId) return DEFAULT_HIGH_RISK_KEYWORDS;
+
+    const { data, error } = await this.supabaseService.client
+      .from('risk_rules')
+      .select('high_risk_keywords')
+      .eq('organization_id', organizationId)
+      .single();
+
+    if (error || !data) return DEFAULT_HIGH_RISK_KEYWORDS;
+    return data.high_risk_keywords;
+  }
+
   async execute(
     diagnosis: Diagnosis,
     serviceName: string,
     incidentId: string | null = null,
     organizationId: string | null = null,
   ): Promise<{ status: string; message: string }> {
-    const risk = classifyRisk(diagnosis.recommendedAction);
+    const highRiskKeywords = await this.getHighRiskKeywords(organizationId);
+    const risk = classifyRisk(diagnosis.recommendedAction, highRiskKeywords);
 
     if (risk === 'low') {
       if (needsSnapshot(diagnosis.recommendedAction)) {

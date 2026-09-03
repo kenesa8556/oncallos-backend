@@ -1,12 +1,11 @@
 export type RiskLevel = "low" | "high";
 
-const HIGH_RISK_KEYWORDS = ["delete", "drop", "rollback database", "modify billing", "remove"];
-
-export function classifyRisk(recommendedAction: string): RiskLevel {
+export function classifyRisk(recommendedAction: string, highRiskKeywords: string[]): RiskLevel {
   const lower = recommendedAction.toLowerCase();
-  const isHighRisk = HIGH_RISK_KEYWORDS.some((keyword) => lower.includes(keyword));
+  const isHighRisk = highRiskKeywords.some((keyword) => lower.includes(keyword.toLowerCase()));
   return isHighRisk ? "high" : "low";
 }
+
 const STATEFUL_ACTION_KEYWORDS = ["delete", "modify", "update", "rollback database", "migrate"];
 
 export function needsSnapshot(recommendedAction: string): boolean {

@@ -17,6 +17,8 @@ import { MembersModule } from './members/members.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { AgentModule } from './agent/agent.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { RiskRulesModule } from './risk-rules/risk-rules.module';
+import { BillingModule } from './billing/billing.module';
 
 @Module({
   imports: [
@@ -25,6 +27,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     AuthModule,
     AlertsModule,
     AgentModule,
+    BillingModule,
     OrganizationsModule,
     EmbeddingsModule,
     ContextModule,
@@ -32,6 +35,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     ExecutionModule,
     MembersModule,
     ApiKeysModule,
+    RiskRulesModule,
     WebhooksModule,
     SnapshotsModule,
     VerificationModule,
