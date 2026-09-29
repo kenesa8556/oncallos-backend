@@ -12,6 +12,11 @@ export class ApiKeysController {
     return this.apiKeysService.list(orgId);
   }
 
+  @Get('usage')
+async getUsage(@Param('orgId') orgId: string) {
+  return this.apiKeysService.getUsage(orgId);
+}
+
   @Post()
   async create(@Param('orgId') orgId: string, @Body('name') name: string) {
     return this.apiKeysService.create(orgId, name);

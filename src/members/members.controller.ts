@@ -9,7 +9,7 @@ export class MembersController {
 
   @Get()
   async list(@Param('orgId') orgId: string) {
-    return this.membersService.list(orgId);
+    return this.membersService.listWithEmails(orgId);
   }
 
   @Post()

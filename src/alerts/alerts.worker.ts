@@ -10,9 +10,19 @@ import { ExecutionService } from '../execution/execution.service';
 import { EmbeddingsService} from '../embeddings/embeddings.service';
 import { verificationQueue } from '../verification/verification.queue';
 
+
 const connection = new Redis(process.env.REDIS_URL!, {
   maxRetriesPerRequest: null,
 });
+
+async function createNotification(supabaseService: any, organizationId: string, incidentId: string, type: string, message: string) {
+  await supabaseService.client.from('notifications').insert({
+    organization_id: organizationId,
+    incident_id: incidentId,
+    type,
+    message,
+  });
+}
 
 async function startWorker() {
   const app = await NestFactory.createApplicationContext(AppModule);
@@ -30,12 +40,13 @@ async function startWorker() {
 
 const { data: incident, error } = await supabaseService.client
   .from('incidents')
-  .insert({
-    title: rawAlert.title,
-    severity: rawAlert.severity,
-    status: 'open',
-    organization_id: rawAlert.organizationId,
-  })
+      .insert({
+      title: rawAlert.title,
+      severity: rawAlert.severity,
+      status: 'open',
+      organization_id: rawAlert.organizationId,
+      service_name: rawAlert.service,
+    })
   .select()
   .single();
 
@@ -45,6 +56,8 @@ if (error) {
 }
 
 console.log('[INCIDENT CREATED]', incident.id);
+
+  await createNotification(supabaseService, rawAlert.organizationId, incident.id, 'new_incident', `New incident: ${incident.title}`);
 
 const embedding = await embeddingsService.generateEmbedding(incident.title);
 await supabaseService.client
@@ -67,14 +80,16 @@ await supabaseService.client
 
       // Persist the diagnosis
       const { error: diagnosisError } = await app.get(SupabaseService).client
-        .from('diagnoses')
-        .insert({
-          incident_id: incident.id,
-          root_cause: diagnosis.rootCause,
-          confidence: diagnosis.confidence,
-          recommended_action: diagnosis.recommendedAction,
-          status: 'pending', // will be updated to 'auto_executed' or 'approved'/'rejected' below
-        });
+            .from('diagnoses')
+            .insert({
+              incident_id: incident.id,
+              root_cause: diagnosis.rootCause,
+              confidence: diagnosis.confidence,
+              recommended_action: diagnosis.recommendedAction,
+              tool_name: diagnosis.toolName,
+              tool_args: diagnosis.toolArgs,
+              status: 'pending',
+            });
 
       if (diagnosisError) {
         console.error('Failed to save diagnosis:', diagnosisError.message);
@@ -83,7 +98,11 @@ await supabaseService.client
       }
 
      const outcome = await executionService.execute(diagnosis, rawAlert.service, incident.id, rawAlert.organizationId);
+
         console.log('Execution outcome:', outcome);
+          if (outcome.status === 'pending') {
+    await createNotification(supabaseService, rawAlert.organizationId, incident.id, 'needs_approval', `Approval needed: ${diagnosis.recommendedAction}`);
+  }
 
         await app.get(SupabaseService).client
             .from('diagnoses')

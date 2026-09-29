@@ -1,14 +1,23 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import Stripe from 'stripe';
 import { SupabaseService } from '../supabase/supabase.service';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
+const PLAN_PRICE_IDS: Record<string, string> = {
+  pro: process.env.STRIPE_PRO_PRICE_ID!,
+  ultra: process.env.STRIPE_ULTRA_PRICE_ID!,
+  max: process.env.STRIPE_MAX_PRICE_ID!,
+};
+
 @Injectable()
 export class BillingService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
-  async createSubscription(organizationId: string, userId: string, userEmail: string) {
+  async createSubscription(organizationId: string, userId: string, userEmail: string, plan: string) {
+    const priceId = PLAN_PRICE_IDS[plan];
+    if (!priceId) throw new BadRequestException(`Unknown plan: ${plan}`);
+
     const { data: membership } = await this.supabaseService.client
       .from('organization_members')
       .select('role')
@@ -27,10 +36,10 @@ export class BillingService {
 
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
-      items: [{ price: process.env.STRIPE_PRO_PRICE_ID! }],
+      items: [{ price: priceId }],
       payment_behavior: 'default_incomplete',
       expand: ['latest_invoice.confirmation_secret'],
-      metadata: { organizationId },
+      metadata: { organizationId, plan },
     });
 
     const invoice = subscription.latest_invoice as Stripe.Invoice;
@@ -54,7 +63,6 @@ export class BillingService {
       throw new ForbiddenException('Only the org owner can manage billing');
     }
 
-    // Find the Stripe customer via metadata (avoids trusting a client-supplied customerId)
     const customers = await stripe.customers.search({
       query: `metadata['organizationId']:'${organizationId}'`,
     });
@@ -75,7 +83,9 @@ export class BillingService {
   async handleWebhookEvent(event: Stripe.Event) {
     if (event.type === 'invoice.payment_succeeded' || event.type === 'customer.subscription.updated') {
       const object = event.data.object as any;
-      const organizationId = object.metadata?.organizationId ?? object.subscription_details?.metadata?.organizationId;
+      const metadata = object.metadata ?? object.subscription_details?.metadata;
+      const organizationId = metadata?.organizationId;
+      const plan = metadata?.plan ?? 'pro'; // fallback for older subscriptions created before this change
 
       if (!organizationId) {
         console.warn(`Webhook ${event.type} had no organizationId in metadata — skipping`);
@@ -84,10 +94,10 @@ export class BillingService {
 
       await this.supabaseService.client
         .from('organizations')
-        .update({ plan: 'pro' })
+        .update({ plan })
         .eq('id', organizationId);
 
-      console.log(`[BILLING] Organization ${organizationId} upgraded to pro`);
+      console.log(`[BILLING] Organization ${organizationId} set to ${plan}`);
     }
 
     if (event.type === 'customer.subscription.deleted') {

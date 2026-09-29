@@ -1,11 +1,18 @@
-import { Controller, Get, Param, UseGuards, Headers, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards, Headers, BadRequestException, Post } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { ExecutionService } from '../execution/execution.service';
 
 @Controller('incidents')
 export class IncidentsController {
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(private readonly supabaseService: SupabaseService, private readonly executionService: ExecutionService) {}
+
+  @UseGuards(SupabaseAuthGuard)
+    @Post(':id/rollback')
+    async rollback(@Param('id') id: string, @Headers('x-organization-id') organizationId: string) {
+      return this.executionService.rollback(id, organizationId);
+    }
 
   @UseGuards(SupabaseAuthGuard)
   @Get()

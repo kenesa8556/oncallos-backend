@@ -4,6 +4,7 @@ import { SupabaseService } from '../supabase/supabase.service';
 const SEAT_LIMITS: Record<string, number> = {
   free: 1,
   pro: 6,
+  ultra: 20,
   max: 100,
 };
 
@@ -20,6 +21,25 @@ export class MembersService {
     if (error) throw error;
     return data;
   }
+
+  async listWithEmails(organizationId: string) {
+  const { data: members, error } = await this.supabaseService.client
+    .from('organization_members')
+    .select('id, user_id, role, created_at')
+    .eq('organization_id', organizationId);
+
+  if (error) throw error;
+
+  const { data: userList, error: userError } = await this.supabaseService.client.auth.admin.listUsers();
+  if (userError) throw userError;
+
+  const emailByUserId = new Map(userList.users.map((u) => [u.id, u.email]));
+
+  return members.map((m) => ({
+    ...m,
+    email: emailByUserId.get(m.user_id) ?? 'unknown',
+  }));
+}
 
   async addByEmail(organizationId: string, email: string) {
     // 1. Find the org's plan and current member count
