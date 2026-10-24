@@ -15,6 +15,7 @@ import { AuthModule } from './auth/auth.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { MembersModule } from './members/members.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
+import { HealthController} from './health.controller'
 import { AgentModule } from './agent/agent.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { RiskRulesModule } from './risk-rules/risk-rules.module';
@@ -47,7 +48,7 @@ import { CloudCredentialsModule } from './cloud-credentials/cloud-credentials.mo
     IncidentChatModule,
     CloudCredentialsModule
   ],
-  controllers: [AppController],
+  controllers: [AppController,HealthController],
   providers: [AppService],
 })
 export class AppModule {}
