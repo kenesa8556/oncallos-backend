@@ -74,7 +74,7 @@ export class BillingService {
 
     const session = await stripe.billingPortal.sessions.create({
       customer: customer.id,
-      return_url: process.env.FRONTEND_URL ?? 'http://localhost:3000/settings/billing',
+      return_url: `${(process.env.FRONTEND_URL ?? 'http://localhost:3000').replace(/\/$/, '')}/settings/billing`,
     });
 
     return { url: session.url };
