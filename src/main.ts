@@ -12,17 +12,19 @@ async function bootstrap() {
     .map((o) => o.trim().replace(/\/$/, '')) // trim spaces + trailing slash
     .filter(Boolean);
 
-  app.enableCors({
+    app.enableCors({
     origin: (origin, callback) => {
-      // Allow server-to-server calls (Stripe webhooks, curl, health checks) with no Origin header
       if (!origin) return callback(null, true);
-
       if (allowedOrigins.includes(origin)) return callback(null, true);
-
-      return callback(new Error(`Origin ${origin} not allowed by CORS`), false);
+      return callback(null, false); // reject without throwing a 500
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Organization-Id',
+      'X-Api-Key',
+    ],
     credentials: true,
   });
 
