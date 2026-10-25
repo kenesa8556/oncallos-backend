@@ -6,9 +6,9 @@ Autonomous incident resolution for on-call teams. When a monitoring alert fires,
 
 > The backend runs on Render's free tier, so the first request after idle can take ~30 s.
 
-![Dashboard](docs/screenshots/dashboard.png)
-![Show data: exact SQL and rows behind each number](docs/screenshots/show-data.png)
-![Import wizard with dry-run review](docs/screenshots/import-wizard.png)
+![Incidents List](docs/screenshots/incident-list.png)
+![Diagnosis Chat](docs/screenshots/diagnosis%20chat.png)
+![Approval for Tool actions](docs/screenshots/Approval.png)
 
 ## How it works
 1. **Alert in:** monitoring tools (e.g. Datadog) send a webhook to your organization's endpoint, authenticated with an API key.
